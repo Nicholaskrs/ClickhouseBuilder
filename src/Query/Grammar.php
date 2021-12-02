@@ -73,15 +73,15 @@ class Grammar
         $sql = [];
 
         foreach ($this->selectComponents as $component) {
-            $compileMethod = 'compile'.ucfirst($component).'Component';
-            $component = 'get'.ucfirst($component);
+            $compileMethod = 'compile' . ucfirst($component) . 'Component';
+            $component = 'get' . ucfirst($component);
 
             if (!is_null($query->$component()) && !empty($query->$component())) {
                 $sql[$component] = $this->$compileMethod($query, $query->$component());
             }
         }
 
-        return trim('SELECT '.trim(implode(' ', $sql)));
+        return trim('SELECT ' . trim(implode(' ', $sql)));
     }
 
     /**
@@ -90,9 +90,9 @@ class Grammar
      * @param BaseBuilder $query
      * @param             $values
      *
+     * @return string
      * @throws GrammarException
      *
-     * @return string
      */
     public function compileInsert(BaseBuilder $query, $values): string
     {
@@ -128,7 +128,7 @@ class Grammar
             $result[] = "({$columns})";
         }
 
-        $result[] = 'FORMAT '.$format;
+        $result[] = 'FORMAT ' . $format;
 
         if ($format == Format::VALUES) {
             $result[] = $this->compileInsertValues($values);
@@ -137,23 +137,50 @@ class Grammar
         return implode(' ', $result);
     }
 
+    public function compileUpdate(BaseBuilder $query, $values)
+    {
+        $this->verifyFrom($query->getFrom());
+
+        $sql = "ALTER TABLE {$this->wrap($query->getFrom()->getTable())}";
+
+        if (!is_null($query->getOnCluster())) {
+            $sql .= " ON CLUSTER {$query->getOnCluster()}";
+        }
+
+        $sql .= ' UPDATE ';
+
+        $updateCommand = [];
+        foreach ($values as $key => $value) {
+            $updateCommand [] = " $key = $value ";
+        }
+        $sql .= implode(",", $updateCommand);
+
+        if (!is_null($query->getWheres()) && !empty($query->getWheres())) {
+            $sql .= " {$this->compileWheresComponent($query, $query->getWheres())}";
+        } else {
+            throw GrammarException::missedWhereForUpdate();
+        }
+
+        return $sql;
+    }
+
     /**
      * Compiles create table query.
      *
      * @param        $tableName
      * @param string $engine
-     * @param array  $structure
-     * @param bool   $ifNotExists
+     * @param array $structure
+     * @param bool $ifNotExists
      *
      * @return string
      */
     public function compileCreateTable($tableName, string $engine, array $structure, $ifNotExists = false): string
     {
         if ($tableName instanceof Identifier) {
-            $tableName = (string) $tableName;
+            $tableName = (string)$tableName;
         }
 
-        return 'CREATE TABLE '.($ifNotExists ? 'IF NOT EXISTS ' : '')."{$tableName} ({$this->compileTableStructure($structure)}) ENGINE = {$engine}";
+        return 'CREATE TABLE ' . ($ifNotExists ? 'IF NOT EXISTS ' : '') . "{$tableName} ({$this->compileTableStructure($structure)}) ENGINE = {$engine}";
     }
 
     /**
@@ -167,10 +194,10 @@ class Grammar
     public function compileDropTable($tableName, $ifExists = false): string
     {
         if ($tableName instanceof Identifier) {
-            $tableName = (string) $tableName;
+            $tableName = (string)$tableName;
         }
 
-        return 'DROP TABLE '.($ifExists ? 'IF EXISTS ' : '')."{$tableName}";
+        return 'DROP TABLE ' . ($ifExists ? 'IF EXISTS ' : '') . "{$tableName}";
     }
 
     /**
@@ -185,7 +212,7 @@ class Grammar
         $result = [];
 
         foreach ($structure as $column => $type) {
-            $result[] = $column.' '.$type;
+            $result[] = $column . ' ' . $type;
         }
 
         return implode(', ', $result);
@@ -193,21 +220,23 @@ class Grammar
 
     public function compileInsertValues($values)
     {
-        return implode(', ', array_map(function ($value) {
-            return '('.implode(', ', array_map(function ($value) {
-                return $this->wrap($value);
-            }, $value)).')';
-        }, $values));
+        return implode(', ',
+            array_map(function ($value) {
+                return '(' . implode(', ', array_map(function ($value) {
+                        return $this->wrap($value);
+                    }, $value)) . ')';
+            }, $values));
     }
+
 
     /**
      * Compile delete query.
      *
      * @param BaseBuilder $query
      *
+     * @return string
      * @throws GrammarException
      *
-     * @return string
      */
     public function compileDelete(BaseBuilder $query)
     {
@@ -248,7 +277,7 @@ class Grammar
 
             return "'{$value}'";
         } elseif ($value instanceof Identifier) {
-            $value = (string) $value;
+            $value = (string)$value;
 
             if (strpos(strtolower($value), '.') !== false) {
                 return implode('.', array_map(function ($element) {
@@ -271,7 +300,7 @@ class Grammar
                 return $value;
             }
 
-            return '`'.str_replace('`', '``', $value).'`';
+            return '`' . str_replace('`', '``', $value) . '`';
         } elseif (is_numeric($value)) {
             return $value;
         } elseif (is_null($value)) {
