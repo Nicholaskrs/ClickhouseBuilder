@@ -82,6 +82,13 @@ class Builder extends BaseBuilder
         return new static($this->client);
     }
 
+    public function first()
+    {
+        $result = $this->limit(1)->get();
+
+        return $result[0] ?? null;
+    }
+
     /**
      * Insert in table data from files.
      *
@@ -160,21 +167,7 @@ class Builder extends BaseBuilder
             return false;
         }
 
-        if (!is_array(reset($values))) {
-            $values = [$values];
-        } /*
-         * Here, we will sort the insert keys for every record so that each insert is
-         * in the same order for the record. We need to make sure this is the case
-         * so there are not any errors or problems when inserting these records.
-         */
-        elseif (!$skipSort) {
-            foreach ($values as $key => $value) {
-                ksort($value);
-                $values[$key] = $value;
-            }
-        }
-
-        return $this->connection->insert($this->grammar->compileUpdate($this, $values));
+        return $this->client->writeOne($this->grammar->compileUpdate($this, $values));
     }
 
     /**

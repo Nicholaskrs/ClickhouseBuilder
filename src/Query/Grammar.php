@@ -133,9 +133,11 @@ class Grammar
         if ($format == Format::VALUES) {
             $result[] = $this->compileInsertValues($values);
         }
+        dd($result);
 
         return implode(' ', $result);
     }
+
 
     public function compileUpdate(BaseBuilder $query, $values)
     {
@@ -147,11 +149,13 @@ class Grammar
             $sql .= " ON CLUSTER {$query->getOnCluster()}";
         }
 
+
         $sql .= ' UPDATE ';
 
         $updateCommand = [];
         foreach ($values as $key => $value) {
-            $updateCommand [] = " $key = $value ";
+            if ($value !== null)
+                $updateCommand [] = " `$key` = '$value' ";
         }
         $sql .= implode(",", $updateCommand);
 
@@ -160,7 +164,7 @@ class Grammar
         } else {
             throw GrammarException::missedWhereForUpdate();
         }
-
+//        dd($sql);
         return $sql;
     }
 
