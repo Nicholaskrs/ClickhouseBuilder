@@ -133,7 +133,6 @@ class Grammar
         if ($format == Format::VALUES) {
             $result[] = $this->compileInsertValues($values);
         }
-        dd($result);
 
         return implode(' ', $result);
     }
